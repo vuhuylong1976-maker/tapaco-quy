@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hướng dẫn cài đặt đầy đủ — TAPACO Money (App Quỹ)</title>
+<style>
+:root{--navy:#1F4E79;--navy2:#2c6aa0;--red:#C00000;--green:#1a7a3c;--gold:#b8860b;--mut:#6b7a8d;--line:#dfe6ef;--bg:#eef2f7}
+*{box-sizing:border-box;font-family:'Segoe UI',system-ui,Arial,sans-serif}
+body{margin:0;background:var(--bg);color:#1c2733;line-height:1.6}
+.wrap{max-width:900px;margin:0 auto;padding:18px}
+header{background:linear-gradient(135deg,#1F4E79,#15314d);color:#fff;padding:26px 20px;border-radius:0 0 20px 20px}
+header h1{margin:0;font-size:23px}
+header p{margin:6px 0 0;opacity:.92;font-size:14px}
+.toc{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin-top:16px}
+.toc b{color:var(--navy)}
+.toc ol{margin:8px 0 0;padding-left:22px}
+.toc a{color:var(--navy);text-decoration:none;font-weight:600}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:16px}
+h2{color:var(--navy);font-size:18px;margin:0 0 4px;display:flex;align-items:center;gap:9px}
+h2 .n{background:var(--navy);color:#fff;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:0 0 auto}
+h3{color:var(--navy);font-size:15px;margin:16px 0 6px}
+ol,ul{margin:8px 0;padding-left:22px}
+li{margin:6px 0}
+.step{background:#f7f9fc;border-left:3px solid var(--navy);border-radius:8px;padding:10px 14px;margin:8px 0}
+code{background:#eef2f7;padding:2px 7px;border-radius:6px;font-size:13px;color:#b8360b;word-break:break-all}
+.pill{display:inline-block;background:var(--navy);color:#fff;border-radius:6px;font-size:12px;padding:2px 9px;font-weight:600}
+.muted{color:var(--mut);font-size:13.5px}
+.ok{background:#eafaef;border:1px solid #bfe6cb;color:#15663a;border-radius:10px;padding:10px 14px;margin:10px 0}
+.warn{background:#fff7e6;border:1px solid #ffe2a8;color:#7a5b1a;border-radius:10px;padding:10px 14px;margin:10px 0}
+.danger{background:#fdecec;border:1px solid #f4c4c4;color:#9a1b1b;border-radius:10px;padding:10px 14px;margin:10px 0}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px;background:#fff}
+th{background:var(--navy);color:#fff;text-align:left;padding:8px 10px}
+td{border-bottom:1px solid var(--line);padding:8px 10px;vertical-align:top}
+.big{font-size:15px}
+a{color:var(--navy);font-weight:600}
+.kbd{background:#fff;border:1px solid #cdd7e3;border-bottom-width:2px;border-radius:6px;padding:1px 7px;font-size:13px;font-weight:600}
+.files b{color:var(--navy)}
+hr{border:none;border-top:1px solid var(--line);margin:16px 0}
+</style></head>
+<body>
+<header><div class="wrap" style="padding:0">
+<h1>📘 Hướng dẫn cài đặt đầy đủ — TAPACO Money</h1>
+<p>App Theo dõi Quỹ tiền mặt • PWA + Google Sheet + Google Drive • Dùng chung cho Công ty & các Công trường</p>
+</div></header>
+<div class="wrap">
+
+<div class="toc">
+<b>Nội dung</b>
+<ol>
+<li><a href="#p0">Bộ cài gồm những gì</a></li>
+<li><a href="#p1">Phần 1 — Dựng Google Sheet + Apps Script (bắt buộc, làm 1 lần)</a></li>
+<li><a href="#p2">Phần 2 — Cấu hình thư mục ảnh & file app.txt</a></li>
+<li><a href="#p3">Phần 3 — Đưa app lên mạng (có link https)</a></li>
+<li><a href="#p4">Phần 4 — Cài trên điện thoại & máy tính</a></li>
+<li><a href="#p5">Phần 5 — Chạy lần đầu (đăng nhập, tải dữ liệu, bật ảnh tự động)</a></li>
+<li><a href="#p6">Phần 6 — Phân quyền & các tính năng chính</a></li>
+<li><a href="#p7">Phần 7 — Cập nhật phiên bản sau này</a></li>
+<li><a href="#p8">Phần 8 — Xử lý sự cố thường gặp</a></li>
+</ol>
+</div>
+
+<!-- 0 -->
+<div class="card" id="p0">
+<h2><span class="n">0</span> Bộ cài gồm những gì</h2>
+<div class="files big">
+<ul>
+<li><b>index.html</b> — Ứng dụng quản lý quỹ (bản để đưa lên hosting).</li>
+<li><b>app_quy_tapaco.html</b> — Bản 1 file để xem/chạy thử nhanh (nằm ngoài gói zip).</li>
+<li><b>Code.gs</b> — Mã backend dán vào Google Apps Script (đồng bộ Sheet + ảnh Drive).</li>
+<li><b>manifest.webmanifest</b>, <b>sw.js</b> — Giúp cài như app thật, chạy offline, tự cập nhật.</li>
+<li><b>icon-192.png</b>, <b>icon-512.png</b> — Biểu tượng TAPACO Money.</li>
+<li><b>app.txt</b> — Chứa URL Apps Script để app tự lấy (xem Phần 2).</li>
+<li><b>HUONG-DAN-CAI-DAT.html</b> — File này.</li>
+</ul>
+</div>
+<div class="muted">Có 3 "mảnh" cần ghép: <b>(A)</b> Backend trên Google — Sheet + Apps Script; <b>(B)</b> App — đưa lên link https; <b>(C)</b> Thư mục ảnh trên Drive. Làm lần lượt theo các phần dưới.</div>
+</div>
+
+<!-- 1 -->
+<div class="card" id="p1">
+<h2><span class="n">1</span> Dựng Google Sheet + Apps Script</h2>
+<div class="muted">Làm 1 lần trên 1 tài khoản Google của công ty (khuyến nghị <code>vuhuylong1976@gmail.com</code> hoặc tài khoản quản trị).</div>
+
+<div class="step">1. Vào <a href="https://sheets.new" target="_blank">sheets.new</a> tạo 1 Google Sheet mới. Đặt tên, ví dụ <b>"TAPACO - Quỹ (Dữ liệu)"</b>. Đây là kho dữ liệu dùng chung.</div>
+<div class="step">2. Trên Sheet: menu <b>Tiện ích mở rộng → Apps Script</b>.</div>
+<div class="step">3. Xóa hết nội dung mẫu, <b>dán toàn bộ nội dung file <code>Code.gs</code></b> vào, bấm <span class="kbd">💾 Lưu</span>.</div>
+<div class="step">4. Bấm <b>Triển khai (Deploy) → Tùy chọn triển khai mới → Loại: Ứng dụng web (Web app)</b>.<br>
+&nbsp;&nbsp;• <b>Thực thi với tư cách:</b> Tôi (Me)<br>
+&nbsp;&nbsp;• <b>Người có quyền truy cập:</b> Bất kỳ ai (Anyone)</div>
+<div class="step">5. Bấm <b>Triển khai</b>. Google sẽ <b>hỏi cấp quyền</b> (Authorize) — chọn tài khoản, bấm "Nâng cao → Đi tới … (không an toàn)" → <b>Cho phép</b>. (Cần quyền Sheet + Drive để lưu ảnh.)</div>
+<div class="step">6. Sao chép <b>URL Web app</b> (kết thúc bằng <code>/exec</code>). Đây là URL đồng bộ của app.</div>
+
+<div class="ok"><b>Xong Phần 1.</b> Giữ lại URL <code>…/exec</code> — sẽ dùng ở Phần 2.</div>
+<div class="warn"><b>Mỗi lần sửa <code>Code.gs</code> về sau</b> đều phải <b>Triển khai lại</b> (Deploy → Quản lý triển khai → ✏️ → Phiên bản: Mới). URL <code>/exec</code> giữ nguyên nếu dùng "Quản lý triển khai"; nếu tạo triển khai mới sẽ ra URL mới (khi đó cập nhật app.txt ở Phần 2).</div>
+</div>
+
+<!-- 2 -->
+<div class="card" id="p2">
+<h2><span class="n">2</span> Thư mục ảnh & file app.txt</h2>
+
+<h3>2.1 — Thư mục chứa ảnh chứng từ</h3>
+<p class="big">Mọi ảnh chứng từ (mọi tài khoản nhập) sẽ được đẩy về <b>một thư mục Google Drive cố định</b>, đặt tên theo số chứng từ.</p>
+<ul>
+<li>Trong <code>Code.gs</code>, dòng <code>var PHOTO_FOLDER_ID = '…';</code> là <b>ID thư mục ảnh</b>.</li>
+<li>Lấy ID: mở thư mục trên Drive, nhìn thanh địa chỉ <code>drive.google.com/drive/folders/<b>ID_Ở_ĐÂY</b></code> → copy đoạn ID.</li>
+<li>Thư mục phải nằm trong Drive của <b>chính tài khoản chạy script</b>, hoặc được chia sẻ quyền <b>Chỉnh sửa</b> cho tài khoản đó.</li>
+</ul>
+<div class="muted">Tên ảnh tự đặt dạng <code>CT_&lt;mã quỹ&gt;_&lt;số chứng từ&gt;__&lt;mã bản ghi&gt;.jpg</code> nên mở lại luôn truy xuất đúng ảnh của từng chứng từ. Sheet có thêm tab <b>Anh_ChungTu</b> liệt kê Số CT · Quỹ · Ngày · link Drive.</div>
+
+<h3>2.2 — File app.txt (để đổi URL không phải sửa từng máy)</h3>
+<p class="big">Khi mở app, app tự đọc URL Apps Script từ <code>app.txt</code>. Đổi URL sau này chỉ cần sửa 1 file này.</p>
+<ul>
+<li>Mở <code>app.txt</code>, thay bằng <b>URL <code>…/exec</code></b> ở Phần 1 (một dòng), lưu lại.</li>
+<li>Đặt <code>app.txt</code> <b>cạnh index.html</b> trên hosting (Phần 3) → app đọc tự động. <span class="pill">Cách chắc ăn nhất</span></li>
+</ul>
+<div class="warn"><b>Về link Google Drive cho app.txt:</b> trình duyệt thường <b>chặn</b> JavaScript tải file từ Drive (bảo mật CORS), nên để app.txt trên Drive <b>hay không đọc được</b>. Nếu muốn đặt ngoài hosting, nên dùng <b>GitHub raw</b> (chạy mọi nơi). Nếu app không tự đổi URL, app vẫn dùng URL đang lưu — không hỏng.</div>
+</div>
+
+<!-- 3 -->
+<div class="card" id="p3">
+<h2><span class="n">3</span> Đưa app lên mạng (link https)</h2>
+<p class="big">App chỉ cài được như ứng dụng thật và tự cập nhật khi mở qua <b>đường dẫn https</b>. Mở bằng file trực tiếp chỉ xem được.</p>
+
+<h3>Cách nhanh nhất — Netlify Drop <span class="pill">Miễn phí, 1 phút</span></h3>
+<div class="step">1. Mở <a href="https://app.netlify.com/drop" target="_blank">app.netlify.com/drop</a> trên máy tính.</div>
+<div class="step">2. <b>Kéo-thả nguyên thư mục</b> <code>tapaco-quy-app</code> vào trang → nhận link dạng <code>https://ten-ngau-nhien.netlify.app</code>.</div>
+<div class="step">3. Mở link đó trên điện thoại/máy tính để cài (Phần 4).</div>
+<div class="muted">Muốn link cố định, tên đẹp: tạo tài khoản Netlify miễn phí → Site settings → Change site name.</div>
+
+<h3>Cách link cố định — GitHub Pages</h3>
+<div class="step">1. Tạo tài khoản <a href="https://github.com" target="_blank">github.com</a>, tạo repository (Public), ví dụ <code>tapaco-quy</code>.</div>
+<div class="step">2. <b>Add file → Upload files</b>: tải lên tất cả file trong thư mục (index.html, sw.js, manifest.webmanifest, app.txt, 2 icon).</div>
+<div class="step">3. <b>Settings → Pages</b>: Branch <code>main</code> + <code>/root</code> → Save. Sau 1–2 phút có link <code>https://&lt;tên&gt;.github.io/tapaco-quy/</code>.</div>
+</div>
+
+<!-- 4 -->
+<div class="card" id="p4">
+<h2><span class="n">4</span> Cài trên điện thoại & máy tính</h2>
+<h3>📱 iPhone / iPad (Safari)</h3>
+<ol class="big"><li>Mở link https bằng <b>Safari</b>.</li><li>Bấm <b>Chia sẻ</b> ⎙ → <b>Thêm vào MH chính</b> → <b>Thêm</b>.</li></ol>
+<h3>📱 Android (Chrome)</h3>
+<ol class="big"><li>Mở link https bằng <b>Chrome</b>.</li><li>Bấm nút <b>📲 Cài app</b> trong app, hoặc menu ⋮ → <b>Cài đặt ứng dụng</b>.</li></ol>
+<h3>💻 Windows / Mac (Chrome / Edge)</h3>
+<ol class="big"><li>Mở link https.</li><li>Bấm <b>📲 Cài app</b> trong app, hoặc biểu tượng cài ⊕ cuối thanh địa chỉ.</li></ol>
+<div class="ok">→ Mở từ biểu tượng <b>TAPACO Money</b>, chạy full màn hình, không có thanh địa chỉ, dùng được cả khi mạng yếu.</div>
+</div>
+
+<!-- 5 -->
+<div class="card" id="p5">
+<h2><span class="n">5</span> Chạy lần đầu</h2>
+<div class="step">1. Mở app, đăng nhập <b>admin / admin123</b> (đổi mật khẩu sau).</div>
+<div class="step">2. Vào <b>Tài khoản → Cài đặt đồng bộ</b>: kiểm tra URL đã đúng (nếu dùng app.txt thì tự nhận). Bấm <b>⬇ Tải từ Sheet</b> để lấy dữ liệu dùng chung.</div>
+<div class="step">3. Tạo <b>Quỹ</b> (công trường/văn phòng) và <b>Tài khoản</b> cho từng bộ phận ở tab Danh mục / Tài khoản.</div>
+<div class="step">4. Trên Google Sheet: tải lại trang để hiện menu <b>📷 Ảnh chứng từ</b> → bấm <b>Bật tự động (mỗi giờ)</b> (lần đầu hỏi cấp quyền → Cho phép). Nếu có ảnh cũ, bấm <b>Gom ảnh cũ…</b> một lần.</div>
+<div class="muted">Mỗi công trường: mở app → đăng nhập → vào <b>Sổ quỹ</b> → bấm <b>☁ Đẩy ảnh lên Drive</b> để đưa ảnh đã nhập trước đó lên thư mục chung.</div>
+
+<h3>Tài khoản mặc định</h3>
+<table><tr><th>Tài khoản</th><th>Mật khẩu</th><th>Quyền</th></tr>
+<tr><td>admin</td><td>admin123</td><td>Quản trị — toàn quyền + đổi URL</td></tr>
+<tr><td>ketoan</td><td>ketoan123</td><td>Kế toán — sửa số liệu, chỉ thêm TK công trình/VP</td></tr>
+<tr><td>ct01 / ct02</td><td>ct01 / ct02</td><td>Công trình — bộ phận được giao</td></tr></table>
+<div class="danger"><b>Bảo mật:</b> mật khẩu lưu dạng thường trên Sheet Users — hạn chế chia sẻ Sheet, và đổi mật khẩu mặc định ngay.</div>
+</div>
+
+<!-- 6 -->
+<div class="card" id="p6">
+<h2><span class="n">6</span> Phân quyền & tính năng chính</h2>
+<h3>Phân quyền</h3>
+<table><tr><th>Vai trò</th><th>Làm được gì</th></tr>
+<tr><td><b>Admin</b></td><td>Toàn quyền; riêng Admin sửa được link URL đồng bộ.</td></tr>
+<tr><td><b>Kế toán</b></td><td>Xem & sửa số liệu toàn công ty; chỉ thêm/sửa tài khoản Công trình & Văn phòng; không đụng tài khoản Admin & link URL.</td></tr>
+<tr><td><b>Công trình / Văn phòng</b></td><td>Làm việc trên bộ phận được giao (Tổng quan · Sổ quỹ · Báo cáo); xem Danh mục; thêm được Đối tượng.</td></tr></table>
+
+<h3>Các tính năng</h3>
+<ul class="big">
+<li><b>Nhập thu/chi</b>: số chứng từ tự đề xuất, định dạng số sống, chụp/tải <b>ảnh chứng từ</b> (tự lên Drive).</li>
+<li><b>In phiếu Thu/Chi</b> mẫu Bộ Tài chính (Mẫu 01-TT / 02-TT, đủ 5 cột ký, số tiền bằng chữ).</li>
+<li><b>Sổ quỹ</b>: cột Đối tượng, ô tìm kiếm (đối tượng/diễn giải/khoản mục), bấm tiêu đề để sắp xếp, mặc định ngày mới nhất.</li>
+<li><b>Báo cáo</b>: lọc theo kỳ / quỹ / đầu mục / khoản mục / đối tượng, biểu đồ, ô tìm kiếm chi tiết, xuất Excel & PDF.</li>
+<li><b>Ngưỡng cảnh báo chi</b> (Danh mục): Admin đặt ngưỡng (vd chi ≥ 20 triệu phải chuyển khoản; lương tiền mặt > 5 triệu) — app cảnh báo hoặc chặn khi nhập.</li>
+<li><b>Cỡ chữ</b>: nút <b>A Vừa/To/Nhỏ</b> trên đầu app, nhớ theo từng máy.</li>
+<li><b>Đồng bộ 2 chiều</b> Google Sheet mỗi phút; cài được như app, chạy offline.</li>
+</ul>
+</div>
+
+<!-- 7 -->
+<div class="card" id="p7">
+<h2><span class="n">7</span> Cập nhật phiên bản sau này</h2>
+<ul class="big">
+<li><b>Sửa giao diện/tính năng app</b>: thay <code>index.html</code> (và <code>sw.js</code> nếu có bản mới) trên hosting → các máy tự nhận sau khi mở lại. Không cài lại.</li>
+<li><b>Sửa backend</b> (<code>Code.gs</code>): dán lại vào Apps Script → <b>Triển khai lại</b> (phiên bản mới).</li>
+<li><b>Đổi URL Apps Script</b>: chỉ sửa <code>app.txt</code> (nếu app đọc được app.txt), hoặc vào Tài khoản → Cài đặt đồng bộ dán URL mới.</li>
+</ul>
+</div>
+
+<!-- 8 -->
+<div class="card" id="p8">
+<h2><span class="n">8</span> Xử lý sự cố</h2>
+<table>
+<tr><th>Hiện tượng</th><th>Cách xử lý</th></tr>
+<tr><td>Không đồng bộ / badge báo lỗi</td><td>Kiểm tra URL <code>/exec</code> đúng; Apps Script đã Triển khai "Anyone / Execute as me"; có mạng.</td></tr>
+<tr><td>Ảnh không lên Drive</td><td>Triển khai lại Code.gs và <b>cấp quyền Drive</b>; kiểm tra <code>PHOTO_FOLDER_ID</code> đúng và thuộc tài khoản chạy script; vào Sổ quỹ bấm <b>☁ Đẩy ảnh lên Drive</b>.</td></tr>
+<tr><td>Không cài được thành app</td><td>Phải mở qua <b>link https</b> (hosting). iPhone chỉ cài bằng Safari.</td></tr>
+<tr><td>Camera không chụp được</td><td>Cần https; cấp quyền camera cho trang; hoặc dùng nút 🖼️ Tải ảnh.</td></tr>
+<tr><td>app.txt không đổi URL</td><td>Để app.txt cạnh index.html trên hosting, hoặc dùng GitHub raw. Link Drive thường bị trình duyệt chặn.</td></tr>
+<tr><td>Máy chưa thấy bản mới</td><td>Đóng hẳn app mở lại; hoặc tải lại trang 2 lần (service worker cập nhật ở lần mở kế tiếp).</td></tr>
+</table>
+</div>
+
+<p class="muted" style="text-align:center;margin:24px 0">TAPACO Việt Nam — Hệ thống Quản lý Quỹ • Hướng dẫn cài đặt đầy đủ</p>
+</div>
+</body></html>
