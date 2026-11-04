@@ -91,6 +91,11 @@ tr:nth-child(even) td{background:#f7f9fc}
 :root[data-fs="sm"] body{zoom:.88}
 :root[data-fs="lg"] body{zoom:1.15}
 .fsbtn{font-weight:700}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.thumb{position:relative;width:76px;height:76px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .thx{position:absolute;top:2px;right:2px;background:rgba(192,0,0,.92);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;line-height:1;cursor:pointer}
+.thumb-add{display:flex;align-items:center;padding:0 10px;font-size:12px;border:1px dashed var(--line);border-radius:8px}
 </style>
 </head>
 <body>
@@ -153,7 +158,7 @@ const Store={
   async del(k){ if(hasWS){try{await window.storage.delete(k,true);}catch(e){}} else localStorage.removeItem(k); }
 };
 
-let DB=null, ME=null, chart=null, photoBuf=null, editingId=null;
+let DB=null, ME=null, chart=null, photoList=[], editingId=null;
 let dirty=false, lastSync=null, syncing=false, syncTimer=null;
 
 const fmt=n=>(Number(n)||0).toLocaleString('vi-VN');
@@ -372,7 +377,7 @@ function fillLedgerRows(){
     return 0;
   });
   if(!rows.length){bodyEl.innerHTML=`<tr><td colspan="9" class="empty">${q?'Không tìm thấy giao dịch khớp':'Chưa có giao dịch'}</td></tr>`;return;}
-  bodyEl.innerHTML=rows.map(t=>`<tr ondblclick="printVoucher('${t.id}')" title="Nháy đúp để in phiếu thu/chi"><td>${sttMap[t.id]}</td><td>${esc(t.date)}<div class="muted">${esc(t.voucher||'')}</div></td><td>${esc(t.note||'')}<div class="muted">${esc(t.dauMuc||'')}</div>${t.hasPhoto?` <button class="iconbtn" onclick="viewPhoto('${t.id}')">🖼️</button>`:''}</td><td>${esc(t.doiTuong||'')}</td><td>${esc(t.khoanMuc||'')}</td><td class="num thu">${t.type==='thu'?fmt(t.amount):''}</td><td class="num chi">${t.type==='chi'?fmt(t.amount):''}</td><td class="num">${fmt(runMap[t.id])}</td><td style="white-space:nowrap"><button class="iconbtn" title="In phiếu" onclick="printVoucher('${t.id}')">🖨️</button>${canEditTxn(t)?`<button class="iconbtn" onclick="openTxn('${t.id}')">✏️</button><button class="iconbtn" onclick="delTxn('${t.id}')">🗑️</button>`:''}</td></tr>`).join('');
+  bodyEl.innerHTML=rows.map(t=>`<tr ondblclick="printVoucher('${t.id}')" title="Nháy đúp để in phiếu thu/chi"><td>${sttMap[t.id]}</td><td>${esc(t.date)}<div class="muted">${esc(t.voucher||'')}</div></td><td>${esc(t.note||'')}<div class="muted">${esc(t.dauMuc||'')}</div>${t.hasPhoto?` <button class="iconbtn" title="Xem ảnh" onclick="viewPhoto('${t.id}')">🖼️${photoCountOf(t)>1?('×'+photoCountOf(t)):''}</button>`:''}</td><td>${esc(t.doiTuong||'')}</td><td>${esc(t.khoanMuc||'')}</td><td class="num thu">${t.type==='thu'?fmt(t.amount):''}</td><td class="num chi">${t.type==='chi'?fmt(t.amount):''}</td><td class="num">${fmt(runMap[t.id])}</td><td style="white-space:nowrap"><button class="iconbtn" title="In phiếu" onclick="printVoucher('${t.id}')">🖨️</button>${canEditTxn(t)?`<button class="iconbtn" onclick="openTxn('${t.id}')">✏️</button><button class="iconbtn" onclick="delTxn('${t.id}')">🗑️</button>`:''}</td></tr>`).join('');
 }
 
 /* ===== SỐ PHIẾU TỰ ĐỀ XUẤT ===== */
@@ -386,7 +391,7 @@ let vTouched=false;
 function onTxnKey(){ if(editingId||vTouched)return; const site=document.getElementById('f-site').value; const type=document.getElementById('f-type').value; document.getElementById('f-vou').value=suggestVoucher(site,type); }
 
 function openTxn(id){
-  editingId=id||null; photoBuf=null; vTouched=!!id;
+  editingId=id||null; photoList=[]; vTouched=!!id;
   const t=id?DB.txns.find(x=>x.id===id):null;
   const sites=visibleSites();
   const curSite=t?t.site:(ledgerSite||sites[0].code);
@@ -394,10 +399,20 @@ function openTxn(id){
   const optList=(arr,val)=>'<option value=""></option>'+arr.map(x=>`<option ${val===x?'selected':''}>${esc(x)}</option>`).join('');
   const locked=isSiteBound(ME);
   const vou=t?(t.voucher||''):suggestVoucher(curSite,'chi');
-  document.body.insertAdjacentHTML('beforeend',`<div class="modal" id="modal"><div class="sheet"><h3>${id?'Sửa giao dịch':'Thêm giao dịch'}</h3><div class="row2"><div><label>Ngày (mặc định hôm nay)</label><input id="f-date" type="date" value="${t?esc(t.date):today()}"></div><div><label>Số chứng từ (tự đề xuất)</label><input id="f-vou" value="${esc(vou)}" oninput="vTouched=true"></div></div><label>Quỹ (Công trường / Văn phòng)</label><select id="f-site" ${locked?'disabled':''} onchange="onTxnKey()">${siteOpts}</select><div class="row2"><div><label>Loại</label><select id="f-type" onchange="onTxnKey()"><option value="chi" ${t&&t.type==='chi'?'selected':''}>Chi</option><option value="thu" ${t&&t.type==='thu'?'selected':''}>Thu</option></select></div><div><label>Số tiền (VNĐ)</label><input id="f-amt" inputmode="numeric" value="${t?fmt(t.amount):''}" placeholder="0"></div></div><label>Đầu mục việc</label><select id="f-dm">${optList(DB.dauMuc,t&&t.dauMuc)}</select><label>Khoản mục chi</label><select id="f-km">${optList(DB.khoanMuc,t&&t.khoanMuc)}</select><label>Đối tượng chi (gõ để tìm hoặc thêm mới)</label><div class="cbx" id="dtbox"><input id="f-dt" autocomplete="off" placeholder="Chọn hoặc gõ tên đối tượng…" value="${t?esc(t.doiTuong||''):''}" oninput="dtFilter()" onfocus="dtFilter()" onblur="dtBlur()"><div class="cbx-pop" id="dtpop"></div></div><label>Đơn vị / Nguồn quỹ</label><select id="f-dv">${optList(DB.donVi,t&&t.donVi)}</select><label>Ghi chú / Diễn giải</label><textarea id="f-note" rows="2">${t?esc(t.note||''):''}</textarea><label>Ảnh chứng từ</label><div class="cap-row"><label class="btn alt" style="margin:0">📷 Chụp ảnh<input type="file" accept="image/*" capture="environment" class="hidden" onchange="onPhoto(this)"></label><label class="btn alt" style="margin:0">🖼️ Tải ảnh<input type="file" accept="image/*" class="hidden" onchange="onPhoto(this)"></label></div><div id="photoPrev">${t&&t.hasPhoto?'<div class="muted" style="margin-top:8px">Đã có ảnh (chọn ảnh mới để thay).</div>':''}</div><div style="display:flex;gap:8px;margin-top:18px"><button class="btn" style="flex:1" onclick="saveTxn()">${id?'Lưu thay đổi':'Thêm'}</button><button class="btn gray" onclick="closeModal()">Hủy</button></div></div></div>`);
+  document.body.insertAdjacentHTML('beforeend',`<div class="modal" id="modal"><div class="sheet"><h3>${id?'Sửa giao dịch':'Thêm giao dịch'}</h3><div class="row2"><div><label>Ngày (mặc định hôm nay)</label><input id="f-date" type="date" value="${t?esc(t.date):today()}"></div><div><label>Số chứng từ (tự đề xuất)</label><input id="f-vou" value="${esc(vou)}" oninput="vTouched=true"></div></div><label>Quỹ (Công trường / Văn phòng)</label><select id="f-site" ${locked?'disabled':''} onchange="onTxnKey()">${siteOpts}</select><div class="row2"><div><label>Loại</label><select id="f-type" onchange="onTxnKey()"><option value="chi" ${t&&t.type==='chi'?'selected':''}>Chi</option><option value="thu" ${t&&t.type==='thu'?'selected':''}>Thu</option></select></div><div><label>Số tiền (VNĐ)</label><input id="f-amt" inputmode="numeric" value="${t?fmt(t.amount):''}" placeholder="0"></div></div><label>Đầu mục việc</label><select id="f-dm">${optList(DB.dauMuc,t&&t.dauMuc)}</select><label>Khoản mục chi</label><select id="f-km">${optList(DB.khoanMuc,t&&t.khoanMuc)}</select><label>Đối tượng chi (gõ để tìm hoặc thêm mới)</label><div class="cbx" id="dtbox"><input id="f-dt" autocomplete="off" placeholder="Chọn hoặc gõ tên đối tượng…" value="${t?esc(t.doiTuong||''):''}" oninput="dtFilter()" onfocus="dtFilter()" onblur="dtBlur()"><div class="cbx-pop" id="dtpop"></div></div><label>Đơn vị / Nguồn quỹ</label><select id="f-dv">${optList(DB.donVi,t&&t.donVi)}</select><label>Ghi chú / Diễn giải</label><textarea id="f-note" rows="2">${t?esc(t.note||''):''}</textarea><label>Ảnh chứng từ (chụp/chọn nhiều ảnh)</label><div class="cap-row"><label class="btn alt" style="margin:0">📷 Chụp ảnh<input type="file" accept="image/*" capture="environment" multiple class="hidden" onchange="onPhoto(this)"></label><label class="btn alt" style="margin:0">🖼️ Tải ảnh<input type="file" accept="image/*" multiple class="hidden" onchange="onPhoto(this)"></label></div>${t&&t.hasPhoto?`<div class="muted" id="oldPhotoNote" style="margin-top:8px">Đã có ${photoCountOf(t)} ảnh — chụp/chọn ảnh mới sẽ <b>thay toàn bộ</b>.</div>`:''}<div id="photoPrev" class="thumbs"></div><div style="display:flex;gap:8px;margin-top:18px"><button class="btn" style="flex:1" onclick="saveTxn()">${id?'Lưu thay đổi':'Thêm'}</button><button class="btn gray" onclick="closeModal()">Hủy</button></div></div></div>`);
   attachMoney(document.getElementById('f-amt'));
 }
-function onPhoto(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{const img=new Image();img.onload=()=>{const max=1000,sc=Math.min(1,max/Math.max(img.width,img.height));const cv=document.createElement('canvas');cv.width=img.width*sc;cv.height=img.height*sc;cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);photoBuf=cv.toDataURL('image/jpeg',0.6);document.getElementById('photoPrev').innerHTML=`<img src="${photoBuf}" class="photo-prev">`;};img.src=e.target.result;};r.readAsDataURL(f);}
+function onPhoto(inp){
+  const files=Array.from(inp.files||[]); if(!files.length)return;
+  files.forEach(f=>{ const r=new FileReader(); r.onload=e=>{const img=new Image();img.onload=()=>{const max=1000,sc=Math.min(1,max/Math.max(img.width,img.height));const cv=document.createElement('canvas');cv.width=img.width*sc;cv.height=img.height*sc;cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);photoList.push(cv.toDataURL('image/jpeg',0.6));renderThumbs();};img.src=e.target.result;}; r.readAsDataURL(f); });
+  inp.value='';
+}
+function renderThumbs(){
+  const el=document.getElementById('photoPrev'); if(!el)return;
+  const note=document.getElementById('oldPhotoNote'); if(photoList.length&&note)note.style.display='none';
+  el.innerHTML=photoList.map((d,i)=>`<div class="thumb"><img src="${d}"><button type="button" class="thx" onclick="removePhoto(${i})">✕</button></div>`).join('')+(photoList.length?`<div class="thumb-add muted">${photoList.length} ảnh</div>`:'');
+}
+function removePhoto(i){ photoList.splice(i,1); renderThumbs(); }
 /* Ô Đối tượng: danh sách có tìm kiếm + thêm mới (mọi tài khoản dùng được) */
 function dtFilter(){
   const inp=document.getElementById('f-dt'), pop=document.getElementById('dtpop'); if(!inp||!pop)return;
@@ -429,13 +444,13 @@ async function saveTxn(){
   }
   const _dt=(obj.doiTuong||'').trim(); obj.doiTuong=_dt; let _newDt=false;
   if(_dt&&!(DB.doiTuong||[]).some(x=>x.toLowerCase()===_dt.toLowerCase())){ if(!DB.doiTuong)DB.doiTuong=[]; DB.doiTuong.push(_dt); _newDt=true; }
-  const pb=photoBuf; let target=null;
+  const pbs=photoList.slice(); let target=null;
   if(editingId){const t=DB.txns.find(x=>x.id===editingId);Object.assign(t,obj);target=t;}
   else{const id=uid();const t={id,...obj,hasPhoto:false,createdBy:ME.u,createdAt:Date.now()};DB.txns.push(t);target=t;}
-  if(pb){await Store.set('photo_'+target.id,pb);target.hasPhoto=true;target.photoPending=true;}
+  if(pbs&&pbs.length){await setLocalPhotos(target.id,pbs);target.hasPhoto=true;target.photoCount=pbs.length;target.photoPending=true;target.photoUp=false;}
   await saveDB();closeModal();render();
   if(_newDt&&DB.syncUrl)cloudPush(false);
-  if(pb&&DB.syncUrl){const info=await drivePhotoUpload(target,pb);if(info){target.photoPending=false;target.photoFile=info.name;await saveDB();}}
+  if(pbs&&pbs.length&&DB.syncUrl){const info=await drivePhotosUpload(target,pbs);if(info){target.photoPending=false;target.photoUp=true;await saveDB();}}
 }
 /* ===== NGƯỠNG CẢNH BÁO CHI ===== */
 function limitViolations(obj){
@@ -480,66 +495,73 @@ function ruleForm(i){
 async function rmRule(i){ if(!canEditMaster())return; if(confirm('Xóa ngưỡng "'+(DB.rules[i].label||'')+'"?')){DB.rules.splice(i,1);await saveDB();if(DB.syncUrl)cloudPush(false);renderMaster();} }
 
 /* ===== ẢNH CHỨNG TỪ ↔ GOOGLE DRIVE ===== */
-async function drivePhotoUpload(t,dataUrl){
-  if(!DB.syncUrl||!dataUrl)return null;
+/* ===== ẢNH CHỨNG TỪ (NHIỀU ẢNH) ↔ GOOGLE DRIVE ===== */
+function photoCountOf(t){ if(!t)return 0; if(t.photoCount!=null)return t.photoCount; return t.hasPhoto?1:0; }
+function isPhotoUploaded(t){ return !!(t&&(t.photoUp===true||t.photoFile)); }
+async function getLocalPhotos(id){
+  try{ const a=await Store.get('photos_'+id); if(a){ const arr=JSON.parse(a); if(Array.isArray(arr))return arr; } }catch(e){}
+  const one=await Store.get('photo_'+id); return one?[one]:[];
+}
+async function setLocalPhotos(id,arr){
+  try{ await Store.set('photos_'+id,JSON.stringify(arr)); }catch(e){}
+  try{ await Store.set('photo_'+id,arr[0]||''); }catch(e){}
+}
+async function delLocalPhotos(id){ try{await Store.del('photos_'+id);}catch(e){} try{await Store.del('photo_'+id);}catch(e){} }
+async function drivePhotosUpload(t,arr){
+  if(!DB.syncUrl||!arr||!arr.length)return null;
   try{
     const r=await fetch(DB.syncUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({action:'photoUpload',rec:{id:t.id,voucher:t.voucher||'',site:t.site||''},dataUrl})});
+      body:JSON.stringify({action:'photoUpload',rec:{id:t.id,voucher:t.voucher||'',site:t.site||''},dataUrls:arr})});
     const j=await r.json();
-    if(j&&j.ok&&j.photo)return j.photo;
+    if(j&&j.ok)return j;
   }catch(e){}
   return null;
 }
-async function drivePhotoFetch(t){
-  if(!DB.syncUrl)return '';
+async function drivePhotosFetch(t){
+  if(!DB.syncUrl)return [];
   try{
     const q=DB.syncUrl+(DB.syncUrl.indexOf('?')>=0?'&':'?')+'action=photo&id='+encodeURIComponent(t.id)+'&voucher='+encodeURIComponent(t.voucher||'')+'&site='+encodeURIComponent(t.site||'');
     const r=await fetch(q,{method:'GET'});
     const j=await r.json();
-    if(j&&j.ok&&j.dataUrl)return j.dataUrl;
+    if(j&&j.ok){ if(Array.isArray(j.dataUrls)&&j.dataUrls.length)return j.dataUrls; if(j.dataUrl)return [j.dataUrl]; }
   }catch(e){}
-  return '';
+  return [];
 }
-// Lấy ảnh: ưu tiên lấy trên Google Drive để hiển thị đồng nhất mọi máy; mất mạng mới dùng bản trên máy
-async function loadPhoto(t){
-  // Ưu tiên ảnh đã lưu trên máy (tức thì); chỉ gọi Drive khi máy chưa có ảnh
-  let d=await Store.get('photo_'+t.id);
-  if(d)return d;
-  d=await drivePhotoFetch(t);
-  if(d){try{await Store.set('photo_'+t.id,d);}catch(e){}}
-  return d||'';
+async function loadPhotos(t){
+  let arr=await getLocalPhotos(t.id);
+  if(arr&&arr.length)return arr;
+  arr=await drivePhotosFetch(t);
+  if(arr&&arr.length){ try{await setLocalPhotos(t.id,arr);}catch(e){} }
+  return arr||[];
 }
-// Đồng bộ lại các ảnh còn nợ (nhập lúc mất mạng) lên Drive
 async function flushPendingPhotos(){
   if(!DB.syncUrl||!DB||!DB.txns)return;
   for(const t of DB.txns){
-    // Đẩy ảnh còn nợ (mất mạng lúc nhập) VÀ ảnh cũ chưa từng lên Drive (hasPhoto nhưng chưa có photoFile)
-    if(t&&t.hasPhoto&&(t.photoPending||!t.photoFile)){
-      const d=await Store.get('photo_'+t.id);
-      if(d){const info=await drivePhotoUpload(t,d);if(info){t.photoPending=false;t.photoFile=info.name;await saveDB();}}
+    if(t&&t.hasPhoto&&(t.photoPending||!isPhotoUploaded(t))){
+      const arr=await getLocalPhotos(t.id);
+      if(arr&&arr.length){ const info=await drivePhotosUpload(t,arr); if(info){t.photoPending=false;t.photoUp=true;t.photoCount=arr.length;await saveDB();} }
     }
   }
 }
-// Đếm số ảnh đang có trên máy này nhưng chưa chắc đã lên Drive
 async function countLocalPhotosToPush(){
   if(!DB||!DB.txns)return 0; let n=0;
-  for(const t of DB.txns){ if(t&&t.hasPhoto&&!t.photoFile){ const d=await Store.get('photo_'+t.id); if(d)n++; } }
+  for(const t of DB.txns){ if(t&&t.hasPhoto&&!isPhotoUploaded(t)){ const arr=await getLocalPhotos(t.id); if(arr&&arr.length)n++; } }
   return n;
 }
-// Nút bấm tay: đẩy toàn bộ ảnh đang lưu trên máy này lên Google Drive (có báo tiến độ)
 async function pushAllPhotos(){
   if(!DB.syncUrl){alert('Chưa cài đặt địa chỉ đồng bộ Google Sheet nên không đẩy ảnh lên Drive được.');return;}
   const list=[];
-  for(const t of DB.txns){ if(t&&t.hasPhoto){ const d=await Store.get('photo_'+t.id); if(d)list.push({t,d}); } }
+  for(const t of DB.txns){ if(t&&t.hasPhoto){ const arr=await getLocalPhotos(t.id); if(arr&&arr.length)list.push({t,arr}); } }
   if(!list.length){alert('Máy này không có ảnh nào đang lưu để đẩy lên Drive.\n(Ảnh chỉ nằm trên chính máy đã chụp/nhập chứng từ đó.)');return;}
-  if(!confirm('Sẽ đẩy '+list.length+' ảnh đang lưu trên máy này lên Google Drive (thư mục chung với file dữ liệu). Tiếp tục?'))return;
+  const tot=list.reduce((s,x)=>s+x.arr.length,0);
+  if(!confirm('Sẽ đẩy '+tot+' ảnh (của '+list.length+' chứng từ) lên Google Drive. Tiếp tục?'))return;
   const btn=document.getElementById('pushPhotoBtn'); const old=btn?btn.textContent:'';
   let ok=0,fail=0;
   for(let i=0;i<list.length;i++){
     if(btn)btn.textContent='Đang đẩy '+(i+1)+'/'+list.length+'…';
-    const {t,d}=list[i];
-    const info=await drivePhotoUpload(t,d);
-    if(info){t.photoPending=false;t.photoFile=info.name;ok++;}else{fail++;}
+    const {t,arr}=list[i];
+    const info=await drivePhotosUpload(t,arr);
+    if(info){t.photoPending=false;t.photoUp=true;t.photoCount=arr.length;ok+=arr.length;}else{fail+=arr.length;}
   }
   await saveDB();
   if(btn)btn.textContent=old;
@@ -547,13 +569,13 @@ async function pushAllPhotos(){
   render();
 }
 async function drivePhotoDelete(t){if(!DB.syncUrl)return;try{await fetch(DB.syncUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'photoDelete',rec:{id:t.id,voucher:t.voucher||'',site:t.site||''}})});}catch(e){}}
-async function delTxn(id){if(!confirm('Xóa giao dịch này?'))return;const t=DB.txns.find(x=>x.id===id);DB.txns=DB.txns.filter(x=>x.id!==id);if(!DB.deleted)DB.deleted=[];DB.deleted.push(id);try{await Store.del('photo_'+id);}catch(e){}await saveDB();render();if(t&&t.hasPhoto)drivePhotoDelete(t);}
+async function delTxn(id){if(!confirm('Xóa giao dịch này?'))return;const t=DB.txns.find(x=>x.id===id);DB.txns=DB.txns.filter(x=>x.id!==id);if(!DB.deleted)DB.deleted=[];DB.deleted.push(id);await delLocalPhotos(id);await saveDB();render();if(t&&t.hasPhoto)drivePhotoDelete(t);}
 async function viewPhoto(id){
   const t=DB.txns.find(x=>x.id===id)||{id};
-  document.body.insertAdjacentHTML('beforeend',`<div class="modal" id="pmodal" onclick="if(event.target.id==='pmodal')this.remove()"><div class="sheet" style="max-width:600px"><div id="pmbody" class="muted" style="padding:12px 0">Đang tải ảnh…</div><button class="btn gray" style="width:100%;margin-top:10px" onclick="document.getElementById('pmodal').remove()">Đóng</button></div></div>`);
-  const data=await loadPhoto(t);
+  document.body.insertAdjacentHTML('beforeend',`<div class="modal" id="pmodal" onclick="if(event.target.id==='pmodal')this.remove()"><div class="sheet" style="max-width:640px"><div id="pmbody" class="muted" style="padding:12px 0">Đang tải ảnh…</div><button class="btn gray" style="width:100%;margin-top:10px" onclick="document.getElementById('pmodal').remove()">Đóng</button></div></div>`);
+  const arr=await loadPhotos(t);
   const b=document.getElementById('pmbody');
-  if(b)b.outerHTML=data?`<img id="pmbody" src="${data}" style="width:100%;border-radius:10px">`:'<div id="pmbody" class="empty">Không tìm thấy ảnh trên máy và trên Google Drive.</div>';
+  if(b)b.outerHTML=arr&&arr.length?`<div id="pmbody">${arr.map((d,i)=>`<div class="muted" style="margin:6px 0 2px">Ảnh ${i+1}/${arr.length}</div><img src="${d}" style="width:100%;border-radius:10px">`).join('')}</div>`:'<div id="pmbody" class="empty">Không tìm thấy ảnh trên máy và trên Google Drive.</div>';
 }
 
 /* ===== BÁO CÁO ===== */
@@ -773,7 +795,7 @@ async function printVoucher(id){
   const daNhan=isThu?'Đã nhận đủ số tiền (viết bằng chữ)':'Đã nhận đủ số tiền (viết bằng chữ)';
   const p=(t.date||'').split('-'); const dd=p[2]||'…',mm=p[1]||'…',yy=p[0]||'……';
   const lyContent=[t.khoanMuc,t.note].filter(Boolean).join(' - ')||'…';
-  const photo=t.hasPhoto?await loadPhoto(t):null;
+  const photos=t.hasPhoto?await loadPhotos(t):[];
   const w=window.open('','_blank');
   if(!w){alert('Trình duyệt chặn cửa sổ in. Hãy mở app trên trình duyệt thật để in phiếu.');return;}
   w.document.write(`<html><head><meta charset="utf-8"><title>${title} ${esc(t.voucher||'')}</title>
@@ -793,6 +815,8 @@ async function printVoucher(id){
   .docwrap{text-align:center;page-break-inside:avoid;break-inside:avoid}
   .docwrap .lbl{font-weight:bold;text-align:center;margin:2mm 0 4px}
   .docwrap img{display:inline-block;width:auto;height:auto;max-width:100%;max-height:125mm;object-fit:contain;page-break-inside:avoid;break-inside:avoid}
+  .docwrap.morepage{page-break-before:always;break-before:page}
+  .docwrap.morepage img{max-height:250mm}
   </style></head><body>
   <div class="voucher">
   <div class="hd"><div><div class="unit">Công ty Cổ phần TAPACO Việt Nam</div><div class="addr">Bộ phận: ${esc(t.site)}</div></div>
@@ -818,7 +842,7 @@ async function printVoucher(id){
   </div>
   <div class="row" style="margin-top:12px">${daNhan}: ………………………………………………………</div>
   </div>
-  ${photo?`<div class="cut">— — — — — —  cắt theo đường này  — — — — — —</div><div class="docwrap"><div class="lbl">CHỨNG TỪ GỐC KÈM THEO</div><img src="${photo}"></div>`:''}
+  ${photos.length?`<div class="cut">— — — — — —  cắt theo đường này  — — — — — —</div>`+photos.map((d,i)=>`<div class="docwrap${i>0?' morepage':''}"><div class="lbl">CHỨNG TỪ GỐC KÈM THEO${photos.length>1?(' ('+(i+1)+'/'+photos.length+')'):''}</div><img src="${d}"></div>`).join(''):''}
   <script>window.onload=()=>window.print();<\/script></body></html>`);
   w.document.close();
 }
