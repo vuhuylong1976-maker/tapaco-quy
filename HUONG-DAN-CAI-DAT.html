@@ -89,6 +89,11 @@ hr{border:none;border-top:1px solid var(--line);margin:16px 0}
 <div class="step">5. Bấm <b>Triển khai</b>. Google sẽ <b>hỏi cấp quyền</b> (Authorize) — chọn tài khoản, bấm "Nâng cao → Đi tới … (không an toàn)" → <b>Cho phép</b>. (Cần quyền Sheet + Drive để lưu ảnh.)</div>
 <div class="step">6. Sao chép <b>URL Web app</b> (kết thúc bằng <code>/exec</code>). Đây là URL đồng bộ của app.</div>
 
+<div class="step"><b>7. Bật dịch vụ Drive API (bắt buộc để app đọc chữ trên ảnh chứng từ – OCR):</b><br>
+&nbsp;&nbsp;• Trong trình soạn thảo Apps Script, cột trái mục <b>Dịch vụ (Services)</b> bấm dấu <b>＋</b>.<br>
+&nbsp;&nbsp;• Chọn <b>Drive API</b> → giữ phiên bản mặc định → bấm <b>Thêm</b>.<br>
+&nbsp;&nbsp;• Bấm <b>Lưu</b>, rồi <b>Triển khai → Quản lý triển khai → ✏️ → Phiên bản: Mới → Triển khai</b>.<br>
+&nbsp;&nbsp;• Lần đầu Google sẽ xin thêm quyền <b>Google Tài liệu</b> (dùng tạm để đọc chữ, đọc xong tự xóa) → <b>Cho phép</b>.</div>
 <div class="ok"><b>Xong Phần 1.</b> Giữ lại URL <code>…/exec</code> — sẽ dùng ở Phần 2.</div>
 <div class="warn"><b>Mỗi lần sửa <code>Code.gs</code> về sau</b> đều phải <b>Triển khai lại</b> (Deploy → Quản lý triển khai → ✏️ → Phiên bản: Mới). URL <code>/exec</code> giữ nguyên nếu dùng "Quản lý triển khai"; nếu tạo triển khai mới sẽ ra URL mới (khi đó cập nhật app.txt ở Phần 2).</div>
 </div>
@@ -176,6 +181,10 @@ hr{border:none;border-top:1px solid var(--line);margin:16px 0}
 <li><b>In phiếu Thu/Chi</b> mẫu Bộ Tài chính (Mẫu 01-TT / 02-TT, đủ 5 cột ký, số tiền bằng chữ).</li>
 <li><b>Sổ quỹ</b>: cột Đối tượng, ô tìm kiếm (đối tượng/diễn giải/khoản mục), bấm tiêu đề để sắp xếp, mặc định ngày mới nhất.</li>
 <li><b>Báo cáo</b>: lọc theo kỳ / quỹ / đầu mục / khoản mục / đối tượng, biểu đồ, ô tìm kiếm chi tiết, xuất Excel & PDF.</li>
+<li><b>Tải ảnh & file PDF</b> (tối đa 10 MB/PDF, 30 MB/chứng từ): xem PDF ngay trong app, khi in phiếu các trang PDF được in kèm.</li>
+<li><b>Đọc ảnh/PDF chứng từ (OCR)</b>: tải lên là app tự đọc chữ (tiếng Việt), <b>tóm tắt thông tin chính</b> (số/ký hiệu hóa đơn, ngày, bên bán, MST, tổng tiền, người hưởng, số tài khoản, nội dung chuyển khoản…) lên đầu ghi chú, <b>cảnh báo khi số tiền trên chứng từ khác số tiền bút toán</b>, nhận ra loại chứng từ (Chuyển tiền/UNC, Hóa đơn, Xác nhận khối lượng khoán, CCCD, Bảng chia tiền, Giao nhận kho, Đề nghị TT), tự tích vào bộ chứng từ và lưu nội dung vào cột <b>Ghi chú chứng từ (OCR)</b>. Có nút <b>🔍 Đọc chứng từ</b> để đọc ngay trong form.</li>
+<li><b>Bộ chứng từ thanh toán & nhắc thiếu</b>: bắt buộc với mọi phiếu chi: <b>Giấy chuyển tiền</b> + <b>Chứng từ thanh toán</b> = <b>Hóa đơn</b>, <i>hoặc</i> bộ khoán đủ 3 loại (<b>Xác nhận giá trị khối lượng khoán + Căn cước công dân + Bảng chia tiền các cá nhân nhận khoán</b>); thêm <b>Biên bản giao nhận kho</b> khi mua vật tư, hàng hóa. Giấy đề nghị thanh toán: không bắt buộc. App hiện nhãn <b>⚠ thiếu CT</b> ở Sổ quỹ, banner ở Tổng quan và <b>bảng nhắc khi đăng nhập</b>, nói rõ còn thiếu gì. Admin chỉnh tại Danh mục → Quy định bộ chứng từ.</li>
+<li><b>Công nợ</b>: tìm theo tên đối tượng (gõ có dấu hay không đều được), tổng hợp từng người (thu, chi, số dư, dư tạm ứng, số khoản thiếu CT), sổ chi tiết lũy kế, <b>in biên bản đối chiếu công nợ</b> và xuất Excel. Sheet có thêm tab <b>CongNo</b>.</li>
 <li><b>Ngưỡng cảnh báo chi</b> (Danh mục): Admin đặt ngưỡng (vd chi ≥ 20 triệu phải chuyển khoản; lương tiền mặt > 5 triệu) — app cảnh báo hoặc chặn khi nhập.</li>
 <li><b>Cỡ chữ</b>: nút <b>A Vừa/To/Nhỏ</b> trên đầu app, nhớ theo từng máy.</li>
 <li><b>Đồng bộ 2 chiều</b> Google Sheet mỗi phút; cài được như app, chạy offline.</li>
@@ -198,6 +207,7 @@ hr{border:none;border-top:1px solid var(--line);margin:16px 0}
 <table>
 <tr><th>Hiện tượng</th><th>Cách xử lý</th></tr>
 <tr><td>Không đồng bộ / badge báo lỗi</td><td>Kiểm tra URL <code>/exec</code> đúng; Apps Script đã Triển khai "Anyone / Execute as me"; có mạng.</td></tr>
+<tr><td>Không đọc được chứng từ (OCR)</td><td>Bật <b>Drive API</b> trong Apps Script (Phần 1 – bước 7) rồi Triển khai lại; ảnh nên rõ, đủ sáng, chụp thẳng. Nếu app chưa nhận ra loại, hãy tích tay ô chứng từ.</td></tr>
 <tr><td>Ảnh không lên Drive</td><td>Triển khai lại Code.gs và <b>cấp quyền Drive</b>; kiểm tra <code>PHOTO_FOLDER_ID</code> đúng và thuộc tài khoản chạy script; vào Sổ quỹ bấm <b>☁ Đẩy ảnh lên Drive</b>.</td></tr>
 <tr><td>Không cài được thành app</td><td>Phải mở qua <b>link https</b> (hosting). iPhone chỉ cài bằng Safari.</td></tr>
 <tr><td>Camera không chụp được</td><td>Cần https; cấp quyền camera cho trang; hoặc dùng nút 🖼️ Tải ảnh.</td></tr>
