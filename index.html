@@ -105,6 +105,8 @@ label.docck{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:13px;
 .docck.miss{background:#fdecec}.docck.miss em{color:var(--red)}
 .missTxt{color:var(--red);font-weight:700;font-size:12px}.okTxt{color:var(--green);font-weight:700;font-size:12px}
 .ocr-row{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid #c9d6e4;border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
+@keyframes spin{to{transform:rotate(360deg)}}
 .docgrp{border:1px dashed #c9d6e4;border-radius:8px;padding:4px 6px 5px;margin:4px 0;background:#fff}
 .docgrp.miss{border-color:#f0a8a8;background:#fff6f6}
 .docgrp-h{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700;color:var(--navy);padding:3px 4px}
@@ -438,7 +440,7 @@ function openTxn(id){
   const vou=t?(t.voucher||''):suggestVoucher(curSite,'chi');
   document.body.insertAdjacentHTML('beforeend',`<div class="modal" id="modal"><div class="sheet"><h3>${id?'Sửa giao dịch':'Thêm giao dịch'}</h3><div class="row2"><div><label>Ngày (mặc định hôm nay)</label><input id="f-date" type="date" value="${t?esc(t.date):today()}"></div><div><label>Số chứng từ (tự đề xuất)</label><input id="f-vou" value="${esc(vou)}" oninput="vTouched=true"></div></div><label>Quỹ (Công trường / Văn phòng)</label><select id="f-site" ${locked?'disabled':''} onchange="onTxnKey()">${siteOpts}</select><div class="row2"><div><label>Loại</label><select id="f-type" onchange="onTxnKey()"><option value="chi" ${t&&t.type==='chi'?'selected':''}>Chi</option><option value="thu" ${t&&t.type==='thu'?'selected':''}>Thu</option></select></div><div><label>Số tiền (VNĐ)</label><input id="f-amt" inputmode="numeric" value="${t?fmt(t.amount):''}" placeholder="0"></div></div><label>Đầu mục việc</label><select id="f-dm">${optList(DB.dauMuc,t&&t.dauMuc)}</select><label>Khoản mục chi</label><select id="f-km">${optList(DB.khoanMuc,t&&t.khoanMuc)}</select><label>Đối tượng chi (gõ để tìm hoặc thêm mới)</label><div class="cbx" id="dtbox"><input id="f-dt" autocomplete="off" placeholder="Chọn hoặc gõ tên đối tượng…" value="${t?esc(t.doiTuong||''):''}" oninput="dtFilter()" onfocus="dtFilter()" onblur="dtBlur()"><div class="cbx-pop" id="dtpop"></div></div><label>Đơn vị / Nguồn quỹ</label><select id="f-dv">${optList(DB.donVi,t&&t.donVi)}</select><label>Ghi chú / Diễn giải</label><textarea id="f-note" rows="2">${t?esc(t.note||''):''}</textarea><label>Ảnh / file PDF chứng từ (chọn được nhiều tệp)</label><div class="cap-row"><label class="btn alt" style="margin:0">📷 Chụp ảnh<input type="file" accept="image/*" capture="environment" multiple class="hidden" onchange="onPhoto(this)"></label><label class="btn alt" style="margin:0">📎 Tải ảnh / PDF<input type="file" accept="image/*,application/pdf,.pdf" multiple class="hidden" onchange="onPhoto(this)"></label></div>${t&&t.hasPhoto?`<div class="muted" id="oldPhotoNote" style="margin-top:8px">Đã có ${photoCountOf(t)} tệp đính kèm — chọn tệp mới sẽ <b>thay toàn bộ</b>.</div>`:''}<div id="photoPrev" class="thumbs"></div>${docBoxHTML(t)}<div style="display:flex;gap:8px;margin-top:18px"><button class="btn" style="flex:1" onclick="saveTxn()">${id?'Lưu thay đổi':'Thêm'}</button><button class="btn gray" onclick="closeModal()">Hủy</button></div></div></div>`);
   attachMoney(document.getElementById('f-amt'));
-  modalOcrDone=false;
+  ocrModalReset(t);
   ['f-type','f-amt','f-dv','f-km','f-dm','f-date'].forEach(i=>{const e=document.getElementById(i);if(e){e.addEventListener('change',refreshDocBox);e.addEventListener('input',refreshDocBox);}});
   refreshDocBox();
 }
@@ -462,14 +464,15 @@ function onPhoto(inp){
       img.src=e.target.result;};
     r.readAsDataURL(f);
   });
-  inp.value=''; modalOcrDone=false;
+  inp.value='';
 }
 function renderThumbs(){
   const el=document.getElementById('photoPrev'); if(!el)return;
   const note=document.getElementById('oldPhotoNote'); if(photoList.length&&note)note.style.display='none';
   el.innerHTML=photoList.map((d,i)=>isPdfData(d)?`<div class="thumb pdf" title="File PDF"><div class="pdft"><span>📄</span><b>PDF</b><em>${fileSizeTxt(d)}</em></div><button type="button" class="thx" onclick="removePhoto(${i})">✕</button></div>`:`<div class="thumb"><img src="${d}"><button type="button" class="thx" onclick="removePhoto(${i})">✕</button></div>`).join('')+(photoList.length?`<div class="thumb-add muted">${photoList.length} tệp</div>`:'');
+  scheduleAutoOcr();
 }
-function removePhoto(i){ photoList.splice(i,1); modalOcrDone=false; renderThumbs(); }
+function removePhoto(i){ photoList.splice(i,1); renderThumbs(); }
 /* Ô Đối tượng: danh sách có tìm kiếm + thêm mới (mọi tài khoản dùng được) */
 function dtFilter(){
   const inp=document.getElementById('f-dt'), pop=document.getElementById('dtpop'); if(!inp||!pop)return;
@@ -742,26 +745,66 @@ async function runOcrForTxn(id,silent){
   finally{delete ocrBusy[id];}
 }
 // Nút "Đọc chứng từ" trong form nhập
-let modalOcrDone=false;
+// Tự đọc ngay khi chọn/chụp ảnh hoặc PDF trong form: chỉ đọc tệp mới, ghép kết quả theo thứ tự tệp
+let modalOcrDone=false,ocrCache=new Map(),ocrRunning=false,ocrTimer=null,modalSeq=0,modalOrigOcr='';
+function ocrModalReset(t){modalSeq++;ocrCache=new Map();ocrRunning=false;clearTimeout(ocrTimer);modalOcrDone=false;modalOrigOcr=t?(t.ocrNote||''):'';}
+function scheduleAutoOcr(){
+  if(!document.getElementById('f-ocr'))return;
+  if(!photoList.length){applyOcrCache();return;}
+  if(!DB.syncUrl||getDocRules().ocrAuto===false)return;
+  clearTimeout(ocrTimer);ocrTimer=setTimeout(autoOcrModal,500);
+}
+async function autoOcrModal(force){
+  if(ocrRunning||!document.getElementById('f-ocr'))return;
+  const seq=modalSeq,todo=photoList.filter(d=>!ocrCache.has(d));
+  if(!todo.length){applyOcrCache();return;}
+  const st=document.getElementById('ocrStatus'),btn=document.getElementById('ocrBtn');
+  ocrRunning=true;if(btn)btn.disabled=true;
+  if(st)st.innerHTML='<span class="spin"></span> Đang tự đọc '+todo.length+' tệp… (vài giây mỗi tệp, cứ nhập tiếp)';
+  let err='';
+  try{
+    const j=await ocrRequest({images:todo});
+    if(seq!==modalSeq)return;
+    if(j&&j.ok)(j.items||[]).forEach((it,i)=>{if(todo[i])ocrCache.set(todo[i],it);});
+    else err=(j&&j.error)||'lỗi kết nối';
+  }catch(e){err='lỗi kết nối';}
+  finally{if(seq===modalSeq){ocrRunning=false;const b=document.getElementById('ocrBtn');if(b)b.disabled=false;}}
+  if(seq!==modalSeq||!document.getElementById('f-ocr'))return;
+  if(err){const s=document.getElementById('ocrStatus');if(s)s.textContent='⚠ Chưa đọc được: '+err;if(force)alert('Không đọc được chứng từ: '+err);return;}
+  applyOcrCache();
+  if(photoList.some(d=>!ocrCache.has(d)))scheduleAutoOcr();   // có tệp mới thêm trong lúc đang đọc
+}
+function applyOcrCache(){
+  const ta=document.getElementById('f-ocr');if(!ta)return;
+  const st=document.getElementById('ocrStatus');
+  if(!photoList.length){ta.value=modalOrigOcr;modalOcrDone=false;if(st)st.textContent='';refreshDocBox();return;}
+  const items=photoList.map(d=>ocrCache.get(d)).filter(Boolean);if(!items.length)return;
+  const res=ocrItemsToResult(items,parseMoney((document.getElementById('f-amt')||{}).value));
+  ta.value=res.note;
+  Object.keys(res.docs).forEach(k=>{const c=document.getElementById('f-doc-'+k);if(c)c.checked=true;});
+  modalOcrDone=photoList.every(d=>ocrCache.has(d));
+  refreshDocBox();
+  const found=Object.keys(res.docs).map(k=>DOC_SHORT[k]);
+  if(st)st.textContent='✓ Đã đọc '+items.length+' tệp'+(found.length?(' • nhận ra: '+found.join(', ')):' • chưa nhận ra loại, hãy tích tay')+(res.warn.length?(' • ⚠ '+res.warn[0]):'');
+}
+// Nút "Đọc lại": tệp mới chọn -> đọc lại hết; phiếu cũ (tệp đã trên Drive) -> đọc từ Drive
 async function ocrInModal(){
   if(!DB.syncUrl){alert('Chưa cài đặt đồng bộ Google Sheet nên chưa đọc được chứng từ.');return;}
-  let body=null;
-  if(photoList.length)body={images:photoList};
-  else if(editingId){const t=DB.txns.find(x=>x.id===editingId);if(t&&t.hasPhoto)body={rec:{id:t.id,voucher:t.voucher||'',site:t.site||''}};}
-  if(!body){alert('Chưa có ảnh hoặc file PDF chứng từ để đọc. Hãy chụp/tải trước.');return;}
-  const st=document.getElementById('ocrStatus'),btn=document.getElementById('ocrBtn');
-  if(btn)btn.disabled=true;if(st)st.textContent='Đang đọc chữ trên ảnh/PDF… (vài giây mỗi tệp)';
+  if(photoList.length){photoList.forEach(d=>ocrCache.delete(d));clearTimeout(ocrTimer);return autoOcrModal(true);}
+  const t=editingId?DB.txns.find(x=>x.id===editingId):null;
+  if(!t||!t.hasPhoto){alert('Chưa có ảnh hoặc file PDF chứng từ để đọc. Hãy chụp/tải trước.');return;}
+  const st=document.getElementById('ocrStatus'),btn=document.getElementById('ocrBtn'),seq=modalSeq;
+  if(btn)btn.disabled=true;if(st)st.innerHTML='<span class="spin"></span> Đang đọc tệp đã lưu trên Drive…';
   try{
-    const j=await ocrRequest(body);
-    if(!document.getElementById('f-ocr'))return;
+    const j=await ocrRequest({rec:{id:t.id,voucher:t.voucher||'',site:t.site||''}});
+    if(seq!==modalSeq||!document.getElementById('f-ocr'))return;
     if(!j||!j.ok){if(st)st.textContent='';alert('Không đọc được chứng từ: '+((j&&j.error)||'lỗi kết nối'));return;}
     const res=ocrItemsToResult(j.items,parseMoney((document.getElementById('f-amt')||{}).value));
-    document.getElementById('f-ocr').value=res.note;
+    document.getElementById('f-ocr').value=res.note;modalOrigOcr=res.note;
     Object.keys(res.docs).forEach(k=>{const c=document.getElementById('f-doc-'+k);if(c)c.checked=true;});
-    if(photoList.length)modalOcrDone=true;
     refreshDocBox();
     const found=Object.keys(res.docs).map(k=>DOC_SHORT[k]);
-    if(st)st.textContent='Đã đọc '+res.items.length+' tệp'+(found.length?(' • nhận ra: '+found.join(', ')):' • chưa nhận ra loại, hãy tích tay')+(res.warn.length?(' • ⚠ '+res.warn[0]):'');
+    if(st)st.textContent='✓ Đã đọc '+res.items.length+' tệp'+(found.length?(' • nhận ra: '+found.join(', ')):' • chưa nhận ra loại, hãy tích tay')+(res.warn.length?(' • ⚠ '+res.warn[0]):'');
   }catch(e){if(st)st.textContent='';alert('Không đọc được chứng từ (lỗi kết nối).');}
   finally{const b=document.getElementById('ocrBtn');if(b)b.disabled=false;}
 }
@@ -783,7 +826,7 @@ function refreshDocBox(){
 }
 function docBoxHTML(t){
   const ck=k=>`<label class="docck" id="dl-${k}"><input type="checkbox" id="f-doc-${k}" ${t&&t.docs&&t.docs[k]?'checked':''} onchange="refreshDocBox()"><span>${DOC_LABEL[k]}</span><em id="dr-${k}"></em></label>`;
-  return `<div class="docbox" id="docbox"><div class="docbox-h"><b>📎 Bộ chứng từ thanh toán</b><span id="docReqNote"></span></div>${ck('ck')}<div class="docgrp" id="dg-tt"><div class="docgrp-h">Chứng từ thanh toán <em id="dr-tt"></em></div>${ck('hd')}<div id="dg-khoan"><div class="docor">— hoặc bộ chứng từ khoán (cần đủ cả 3) —</div>${KHOAN_KEYS.map(ck).join('')}</div></div>${ck('nk')}${ck('dn')}<div class="ocr-row"><button type="button" class="btn sm alt" id="ocrBtn" onclick="ocrInModal()">🔍 Đọc chứng từ (OCR)</button><span class="muted" id="ocrStatus"></span></div><label>Ghi chú chứng từ (tự đọc từ ảnh/PDF – tóm tắt + nội dung, sửa được)</label><textarea id="f-ocr" rows="4" placeholder="Bấm “Đọc chứng từ”, hoặc lưu xong app tự đọc ảnh/PDF, tóm tắt thông tin chính và điền vào đây…">${t?esc(t.ocrNote||''):''}</textarea></div>`;
+  return `<div class="docbox" id="docbox"><div class="docbox-h"><b>📎 Bộ chứng từ thanh toán</b><span id="docReqNote"></span></div>${ck('ck')}<div class="docgrp" id="dg-tt"><div class="docgrp-h">Chứng từ thanh toán <em id="dr-tt"></em></div>${ck('hd')}<div id="dg-khoan"><div class="docor">— hoặc bộ chứng từ khoán (cần đủ cả 3) —</div>${KHOAN_KEYS.map(ck).join('')}</div></div>${ck('nk')}${ck('dn')}<div class="ocr-row"><button type="button" class="btn sm alt" id="ocrBtn" onclick="ocrInModal()">🔍 Đọc lại (OCR)</button><span class="muted" id="ocrStatus"></span></div><label>Ghi chú chứng từ (tự đọc từ ảnh/PDF – tóm tắt + nội dung, sửa được)</label><textarea id="f-ocr" rows="4" placeholder="Chọn hoặc chụp ảnh/PDF là app tự đọc, tóm tắt thông tin chính và điền vào đây…">${t?esc(t.ocrNote||''):''}</textarea></div>`;
 }
 // Nhắc bổ sung chứng từ
 function remindBanner(){const L=missingTxns();if(!L.length)return'';const sum=L.reduce((s,t)=>s+Number(t.amount||0),0);return`<div class="remind">⚠️<div><b>${L.length} khoản chi còn thiếu chứng từ</b> (tổng ${fmt(sum)} đ). Cần bổ sung để đủ hồ sơ thanh toán.</div><button class="btn sm red" onclick="showDocReminder(false)">Xem & bổ sung</button></div>`;}

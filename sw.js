@@ -1,4 +1,4 @@
-const CACHE='tapaco-quy-v16';
+const CACHE='tapaco-quy-v17';
 const ASSETS=[
   './','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
