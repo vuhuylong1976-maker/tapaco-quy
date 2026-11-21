@@ -1,0 +1,8 @@
+1. Tạm ứng lương
+2. Thanh toán mua dịch vụ
+3. Thanh toán mua vật tư
+4. Thanh toán cá nhân khoán
+5. Thanh toán tổ nhân công khoán
+6. Thanh toán chi phí dịch vụ
+7. Thanh toán công tác phí
+8. Thanh toán chi phí định mức
